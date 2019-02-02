@@ -6,6 +6,7 @@ walksat: walksat.c
 	$(CC)  -c walksat.c
 	# If linking fails, then try adding Windows Winmm.lib
 	$(CC) walksat.o -lm -static -o walksat || $(CC) walksat.o -lm -lWinmm -o walksat
+	strip walksat
 
 makewff: makewff.c
 	$(CC)  makewff.c -lm -o makewff
