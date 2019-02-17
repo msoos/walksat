@@ -109,7 +109,7 @@
 /* Two dimensional arrays are dynamically allocated in */
 /* the second dimension only.  */
 
-int numatom;     /* number of atoms */
+int numvars;     /* number of atoms */
 int numclause;   /* number of clauses */
 int numliterals; /* number of instances of literals across all clauses */
 
@@ -127,7 +127,7 @@ int *wherefalse; /* where each clause is listed in false */
 int *numtruelit; /* number of true literals in each clause */
 int longestclause;
 
-/* Data structures for atoms: arrays of size numatom+1 indexed by atom */
+/* Data structures for atoms: arrays of size numvars+1 indexed by atom */
 
 int *atom;         /* value of each atom */
 int *lowatom;      /* value of best state found so far */
@@ -138,13 +138,13 @@ int *makecount;    /* number of clauses that become sat if var if flipped */
 int *freebielist;  /* list of freebies */
 int *wherefreebie; /* where atom appears in freebies list, -1 if it does not appear */
 
-/* Data structures literals: arrays of size 2*numatom+1, indexed by literal+numatom */
+/* Data structures literals: arrays of size 2*numvars+1, indexed by literal+numvars */
 
-int **occurrence; /* where each literal occurs, size 2*numatom+1            */
-/* indexed as occurrence[literal+numatom][occurrence_num] */
+int **occurrence; /* where each literal occurs, size 2*numvars+1            */
+/* indexed as occurrence[literal+numvars][occurrence_num] */
 
-int *numoccurrence; /* number of times each literal occurs, size 2*numatom+1  */
-/* indexed as numoccurrence[literal+numatom]              */
+int *numoccurrence; /* number of times each literal occurs, size 2*numvars+1  */
+/* indexed as numoccurrence[literal+numvars]              */
 
 /* Data structures for lists of clauses used in heuristics */
 
@@ -394,7 +394,7 @@ void print_statistics_final(void);
 void print_sol_cnf(void);
 void read_hamming_file(void);
 void open_hamming_data(void);
-int calc_hamming_dist(int atom[], int hamming_target[], int numatom);
+int calc_hamming_dist(int atom[], int hamming_target[], int numvars);
 
 /************************************/
 /* Main                             */
@@ -482,10 +482,10 @@ void flipatom(int toflip)
             fprintf(hamming_fp, "%" BIGFORMAT " %i\n", numflip, hamming_distance);
     }
 
-    numocc = numoccurrence[numatom - toenforce];
-    occptr = occurrence[numatom - toenforce];
+    numocc = numoccurrence[numvars - toenforce];
+    occptr = occurrence[numvars - toenforce];
     for (i = 0; i < numocc; i++) {
-        /* cli = occurrence[numatom-toenforce][i]; */
+        /* cli = occurrence[numvars-toenforce][i]; */
         cli = *(occptr++);
 
         if (--numtruelit[cli] == 0) {
@@ -540,11 +540,11 @@ void flipatom(int toflip)
         }
     }
 
-    numocc = numoccurrence[numatom + toenforce];
+    numocc = numoccurrence[numvars + toenforce];
 
-    occptr = occurrence[numatom + toenforce];
+    occptr = occurrence[numvars + toenforce];
     for (i = 0; i < numocc; i++) {
-        /* cli = occurrence[numatom+toenforce][i]; */
+        /* cli = occurrence[numvars+toenforce][i]; */
         cli = *(occptr++);
 
         if (++numtruelit[cli] == 1) {
@@ -825,7 +825,7 @@ void init(void)
     for (i = 0; i < numclause; i++)
         numtruelit[i] = 0;
     numfalse = 0;
-    for (i = 1; i < numatom + 1; i++) {
+    for (i = 1; i < numvars + 1; i++) {
         changed[i] =
             -i - 1000; /* ties in age between unchanged variables broken for lowest-numbered */
         breakcount[i] = 0;
@@ -841,7 +841,7 @@ void init(void)
         i = 0;
         while (fscanf(infile, " %i", &lit) == 1) {
             i++;
-            if (ABS(lit) > numatom) {
+            if (ABS(lit) > numvars) {
                 fprintf(stderr, "Bad init file %s\n", initfile);
                 exit(1);
             }
@@ -879,9 +879,9 @@ void init(void)
 
     /* Create freebie list */
     numfreebie = 0;
-    for (var = 1; var <= numatom; var++)
+    for (var = 1; var <= numvars; var++)
         wherefreebie[var] = -1;
-    for (var = 1; var <= numatom; var++) {
+    for (var = 1; var <= numvars; var++) {
         if (makecount[var] > 0 && breakcount[var] == 0) {
             wherefreebie[var] = numfreebie;
             freebielist[numfreebie++] = var;
@@ -895,7 +895,7 @@ void init(void)
 
     /* Initialize hamming distance calculation */
     if (hamming_flag) {
-        hamming_distance = calc_hamming_dist(atom, hamming_target, numatom);
+        hamming_distance = calc_hamming_dist(atom, hamming_target, numvars);
         fprintf(hamming_fp, "0 %i\n", hamming_distance);
     }
 }
@@ -917,7 +917,7 @@ void initprob(void)
             ;
     }
     ungetc(lastc, cnfStream);
-    if (fscanf(cnfStream, "p cnf %i %i", &numatom, &numclause) != 2) {
+    if (fscanf(cnfStream, "p cnf %i %i", &numvars, &numclause) != 2) {
         fprintf(stderr, "Bad input file\n");
         exit(-1);
     }
@@ -929,17 +929,17 @@ void initprob(void)
     wherefalse = (int *)calloc(sizeof(int), (numclause + 1));
     numtruelit = (int *)calloc(sizeof(int), (numclause + 1));
 
-    occurrence = (int **)calloc(sizeof(int *), (2 * numatom + 1));
-    numoccurrence = (int *)calloc(sizeof(int), (2 * numatom + 1));
-    atom = (int *)calloc(sizeof(int), (numatom + 1));
-    lowatom = (int *)calloc(sizeof(int), (numatom + 1));
-    solution = (int *)calloc(sizeof(int), (numatom + 1));
-    changed = (BIGINT *)calloc(sizeof(BIGINT), (numatom + 1));
-    breakcount = (int *)calloc(sizeof(int), (numatom + 1));
-    makecount = (int *)calloc(sizeof(int), (numatom + 1));
-    freebielist = (int *)calloc(sizeof(int), (numatom + 1));
-    wherefreebie = (int *)calloc(sizeof(int), (numatom + 1));
-    hamming_target = (int *)calloc(sizeof(int), (numatom + 1));
+    occurrence = (int **)calloc(sizeof(int *), (2 * numvars + 1));
+    numoccurrence = (int *)calloc(sizeof(int), (2 * numvars + 1));
+    atom = (int *)calloc(sizeof(int), (numvars + 1));
+    lowatom = (int *)calloc(sizeof(int), (numvars + 1));
+    solution = (int *)calloc(sizeof(int), (numvars + 1));
+    changed = (BIGINT *)calloc(sizeof(BIGINT), (numvars + 1));
+    breakcount = (int *)calloc(sizeof(int), (numvars + 1));
+    makecount = (int *)calloc(sizeof(int), (numvars + 1));
+    freebielist = (int *)calloc(sizeof(int), (numvars + 1));
+    wherefreebie = (int *)calloc(sizeof(int), (numvars + 1));
+    hamming_target = (int *)calloc(sizeof(int), (numvars + 1));
 
     numliterals = 0;
     longestclause = 0;
@@ -950,7 +950,7 @@ void initprob(void)
     printf("Reading formula\n");
     storebase = (int *)calloc(sizeof(int), 1024);
 
-    for (i = 0; i < 2 * numatom + 1; i++)
+    for (i = 0; i < 2 * numvars + 1; i++)
         numoccurrence[i] = 0;
     for (i = 0; i < numclause; i++) {
         size[i] = 0;
@@ -971,7 +971,7 @@ void initprob(void)
                 size[i]++;
                 storebase[storeused++] = lit;
                 numliterals++;
-                numoccurrence[lit + numatom]++;
+                numoccurrence[lit + numvars]++;
             }
         } while (lit != 0);
         if (size[i] == 0) {
@@ -1003,7 +1003,7 @@ void initprob(void)
 
     /* Second, allocate occurence lists */
     i = 0;
-    for (lit = -numatom; lit <= numatom; lit++) {
+    for (lit = -numvars; lit <= numvars; lit++) {
         /* printf("lit = %d    i = %d\n", lit, i); fflush(stdout); */
 
         if (lit != 0) {
@@ -1011,9 +1011,9 @@ void initprob(void)
                 fprintf(stderr, "Code error, allocating occurrence lists\n");
                 exit(-1);
             }
-            occurrence[lit + numatom] = &(storebase[i]);
-            i += numoccurrence[lit + numatom];
-            numoccurrence[lit + numatom] = 0;
+            occurrence[lit + numvars] = &(storebase[i]);
+            i += numoccurrence[lit + numvars];
+            numoccurrence[lit + numvars] = 0;
         }
     }
 
@@ -1021,8 +1021,8 @@ void initprob(void)
     for (i = 0; i < numclause; i++) {
         for (j = 0; j < size[i]; j++) {
             lit = clause[i][j];
-            occurrence[lit + numatom][numoccurrence[lit + numatom]] = i;
-            numoccurrence[lit + numatom]++;
+            occurrence[lit + numvars][numoccurrence[lit + numvars]] = i;
+            numoccurrence[lit + numvars]++;
         }
     }
 }
@@ -1068,13 +1068,13 @@ void initialize_statistics(void)
         read_hamming_file();
         open_hamming_data();
     }
-    tail_start_flip = tail * numatom;
+    tail_start_flip = tail * numvars;
     printf("tail starts after flip = %i\n", tail_start_flip);
 }
 
 void print_statistics_header(void)
 {
-    printf("numatom = %i, numclause = %i, numliterals = %i\n", numatom, numclause, numliterals);
+    printf("numvars = %i, numclause = %i, numliterals = %i\n", numvars, numclause, numliterals);
     printf("wff read in\n\n");
 
     printf(
@@ -1358,7 +1358,7 @@ void print_statistics_final(void)
     if (hamming_flag) {
         fclose(hamming_fp);
         printf("Final distance to hamming target = %i\n",
-               calc_hamming_dist(atom, hamming_target, numatom));
+               calc_hamming_dist(atom, hamming_target, numvars));
         printf("Hamming distance data stored in %s\n", hamming_data_file);
     }
 
@@ -1372,12 +1372,12 @@ void print_statistics_final(void)
         printf("ASSIGNMENT NOT FOUND\n");
 }
 
-int calc_hamming_dist(int atom[], int hamming_target[], int numatom)
+int calc_hamming_dist(int atom[], int hamming_target[], int numvars)
 {
     int i;
     int dist = 0;
 
-    for (i = 1; i <= numatom; i++) {
+    for (i = 1; i <= numvars; i++) {
         if (atom[i] != hamming_target[i])
             dist++;
     }
@@ -1405,11 +1405,11 @@ void read_hamming_file(void)
         exit(1);
     }
     i = 0;
-    for (i = 1; i < numatom + 1; i++)
+    for (i = 1; i < numvars + 1; i++)
         hamming_target[i] = 0;
 
     while (fscanf(infile, " %i", &lit) == 1) {
-        if (ABS(lit) > numatom) {
+        if (ABS(lit) > numvars) {
             fprintf(stderr, "Bad hamming file %s\n", initfile);
             exit(1);
         }
@@ -1446,7 +1446,7 @@ void save_false_clauses(int lowbad)
 void print_sol_cnf(void)
 {
     int i;
-    for (i = 1; i < numatom + 1; i++)
+    for (i = 1; i < numvars + 1; i++)
         printf("v %i\n", solution[i] == 1 ? i : -i);
 }
 
@@ -1459,7 +1459,7 @@ void print_sol_file(char *filename)
         fprintf(stderr, "Cannot open output file\n");
         exit(-1);
     }
-    for (i = 1; i < numatom + 1; i++) {
+    for (i = 1; i < numvars + 1; i++) {
         fprintf(fp, " %i", solution[i] == 1 ? i : -i);
         if (i % 10 == 0)
             fprintf(fp, "\n");
@@ -1474,7 +1474,7 @@ void print_low_assign(int lowbad)
     int i;
 
     printf("Begin assign with lowest # bad = %d\n", lowbad);
-    for (i = 1; i <= numatom; i++) {
+    for (i = 1; i <= numvars; i++) {
         printf(" %i", lowatom[i] == 0 ? -i : i);
         if (i % 10 == 0)
             printf("\n");
@@ -1489,7 +1489,7 @@ void print_current_assign(void)
     int i;
 
     printf("Begin assign at flip = %" BIGFORMAT "\n", numflip);
-    for (i = 1; i <= numatom; i++) {
+    for (i = 1; i <= numvars; i++) {
         printf(" %i", atom[i] == 0 ? -i : i);
         if (i % 10 == 0)
             printf("\n");
@@ -1503,7 +1503,7 @@ void save_low_assign(void)
 {
     int i;
 
-    for (i = 1; i <= numatom; i++)
+    for (i = 1; i <= numvars; i++)
         lowatom[i] = atom[i];
 }
 
@@ -1511,7 +1511,7 @@ void save_solution(void)
 {
     int i;
 
-    for (i = 1; i <= numatom; i++)
+    for (i = 1; i <= numvars; i++)
         solution[i] = atom[i];
 }
 
