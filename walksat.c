@@ -1277,6 +1277,7 @@ void print_statistics_final(void)
 {
     seconds_per_flip = expertime / totalflip;
     printf("\ntotal elapsed seconds = %f\n", expertime);
+    printf("num tries: %d\n", numtry);
     printf("average flips per second = %f\n", ((double)totalflip) / expertime);
     printf("number solutions found = %i\n", numsuccesstry);
     printf("final success rate = %f\n", ((double)numsuccesstry * 100.0) / numtry);
