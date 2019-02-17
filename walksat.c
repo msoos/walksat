@@ -120,7 +120,7 @@ int numfreebie; /* number of freebies */
 
 int **clause; /* clauses to be satisfied */
 /* indexed as clause[clause_num][literal_num] */
-int *size;       /* length of each clause */
+int *clsize;       /* length of each clause */
 int * false;     /* clauses which are false */
 int *lowfalse;   /* clauses that are false in the best solution found so far */
 int *wherefalse; /* where each clause is listed in false */
@@ -502,7 +502,7 @@ void flipatom(int toflip)
 
             if (makeflag) {
                 /* Increment the makecount of all vars in the clause */
-                sz = size[cli];
+                sz = clsize[cli];
                 litptr = clause[cli];
                 for (j = 0; j < sz; j++) {
                     /* lit = clause[cli][j]; */
@@ -561,7 +561,7 @@ void flipatom(int toflip)
 
             if (makeflag) {
                 /* Decrement the makecount of all vars in the clause */
-                sz = size[cli];
+                sz = clsize[cli];
                 litptr = clause[cli];
                 for (j = 0; j < sz; j++) {
                     /* lit = clause[cli][j]; */
@@ -859,7 +859,7 @@ void init(void)
 
     /* Initialize breakcount and makecount */
     for (i = 0; i < numclauses; i++) {
-        for (j = 0; j < size[i]; j++) {
+        for (j = 0; j < clsize[i]; j++) {
             if ((clause[i][j] > 0) == atom[ABS(clause[i][j])]) {
                 numtruelit[i]++;
                 thetruelit = clause[i][j];
@@ -869,7 +869,7 @@ void init(void)
             wherefalse[i] = numfalse;
             false[numfalse] = i;
             numfalse++;
-            for (j = 0; j < size[i]; j++) {
+            for (j = 0; j < clsize[i]; j++) {
                 makecount[ABS(clause[i][j])]++;
             }
         } else if (numtruelit[i] == 1) {
@@ -923,7 +923,7 @@ void initprob(void)
     }
 
     clause = (int **)calloc(sizeof(int *), (numclauses + 1));
-    size = (int *)calloc(sizeof(int), (numclauses + 1));
+    clsize = (int *)calloc(sizeof(int), (numclauses + 1));
     false = (int *)calloc(sizeof(int), (numclauses + 1));
     lowfalse = (int *)calloc(sizeof(int), (numclauses + 1));
     wherefalse = (int *)calloc(sizeof(int), (numclauses + 1));
@@ -953,7 +953,7 @@ void initprob(void)
     for (i = 0; i < 2 * numvars + 1; i++)
         numoccurrence[i] = 0;
     for (i = 0; i < numclauses; i++) {
-        size[i] = 0;
+        clsize[i] = 0;
         do {
             if (fscanf(cnfStream, "%i ", &lit) != 1) {
                 fprintf(stderr, "Bad input file\n");
@@ -968,17 +968,17 @@ void initprob(void)
                     free((void *)storeptr);
                     storesize *= 2;
                 }
-                size[i]++;
+                clsize[i]++;
                 storebase[storeused++] = lit;
                 numliterals++;
                 numoccurrence[lit + numvars]++;
             }
         } while (lit != 0);
-        if (size[i] == 0) {
+        if (clsize[i] == 0) {
             fprintf(stderr, "Bad input file\n");
             exit(-1);
         }
-        longestclause = MAX(longestclause, size[i]);
+        longestclause = MAX(longestclause, clsize[i]);
     }
 
     printf("Creating data structures\n");
@@ -987,7 +987,7 @@ void initprob(void)
     j = 0;
     for (i = 0; i < numclauses; i++) {
         clause[i] = &(storebase[j]);
-        j += size[i];
+        j += clsize[i];
     }
 
     best = calloc(sizeof(int), longestclause);
@@ -1019,7 +1019,7 @@ void initprob(void)
 
     /* Third, fill in the occurence lists */
     for (i = 0; i < numclauses; i++) {
-        for (j = 0; j < size[i]; j++) {
+        for (j = 0; j < clsize[i]; j++) {
             lit = clause[i][j];
             occurrence[lit + numvars][numoccurrence[lit + numvars]] = i;
             numoccurrence[lit + numvars]++;
@@ -1427,7 +1427,7 @@ void print_false_clauses(int lowbad)
     printf("Unsatisfied clauses:\n");
     for (i = 0; i < lowbad; i++) {
         cl = lowfalse[i];
-        for (j = 0; j < size[cl]; j++) {
+        for (j = 0; j < clsize[cl]; j++) {
             printf("%i ", clause[cl][j]);
         }
         printf("0\n");
@@ -1602,7 +1602,7 @@ int countunsat(void)
     unsat = 0;
     for (i = 0; i < numclauses; i++) {
         bad = TRUE;
-        for (j = 0; j < size[i]; j++) {
+        for (j = 0; j < clsize[i]; j++) {
             lit = clause[i][j];
             sign = lit > 0 ? 1 : 0;
             if (atom[ABS(lit)] == sign) {
@@ -1665,7 +1665,7 @@ int pickbest(void)
     register int var;
 
     tofix = false[RANDMOD(numfalse)];
-    clausesize = size[tofix];
+    clausesize = clsize[tofix];
     numbest = 0;
     bestvalue = BIG;
 
@@ -1696,7 +1696,7 @@ int pickgsat(void)
     register int var;
 
     tofix = false[RANDMOD(numfalse)];
-    clausesize = size[tofix];
+    clausesize = clsize[tofix];
     numbest = 0;
     bestvalue = BIG;
 
@@ -1732,7 +1732,7 @@ int pickalternate(void)
     }
 
     tofix = false[RANDMOD(numfalse)];
-    clausesize = size[tofix];
+    clausesize = clsize[tofix];
     numbest = 0;
     bestvalue = BIG;
 
@@ -1779,7 +1779,7 @@ int pickbigflip(void)
     }
 
     tofix = false[RANDMOD(numfalse)];
-    clausesize = size[tofix];
+    clausesize = clsize[tofix];
     numbest = 0;
     bestvalue = BIG;
 
@@ -1821,7 +1821,7 @@ int pickrnovelty(void)
     int tofix, clausesize, i;
 
     tofix = false[RANDMOD(numfalse)];
-    clausesize = size[tofix];
+    clausesize = clsize[tofix];
 
     if (clausesize == 1)
         return ABS(clause[tofix][0]);
@@ -1906,7 +1906,7 @@ int picknovelty(void)
     int tofix, clausesize, i;
 
     tofix = false[RANDMOD(numfalse)];
-    clausesize = size[tofix];
+    clausesize = clsize[tofix];
 
     if (clausesize == 1)
         return ABS(clause[tofix][0]);
@@ -1971,7 +1971,7 @@ int picktabu(void)
 
     for (attempt = 0; attempt < MAXATTEMPT; attempt++) {
         tofix = false[RANDMOD(numfalse)];
-        clausesize = size[tofix];
+        clausesize = clsize[tofix];
         numbest = 0;
         numbesttabu = 0;
         bestvalue = BIG;
