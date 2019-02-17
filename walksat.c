@@ -110,7 +110,7 @@
 /* the second dimension only.  */
 
 int numvars;     /* number of atoms */
-int numclause;   /* number of clauses */
+int numclauses;   /* number of clauses */
 int numliterals; /* number of instances of literals across all clauses */
 
 int numfalse;   /* number of false clauses */
@@ -817,12 +817,12 @@ void init(void)
     if (adaptive) {
         walk_probability = 0.0;
         numerator = (int)(walk_probability * denominator);
-        stagnation_timer = (int)(numclause * adaptive_theta);
+        stagnation_timer = (int)(numclauses * adaptive_theta);
         last_adaptive_objective = BIG;
     }
 
     /* initialize truth assignment and changed time */
-    for (i = 0; i < numclause; i++)
+    for (i = 0; i < numclauses; i++)
         numtruelit[i] = 0;
     numfalse = 0;
     for (i = 1; i < numvars + 1; i++) {
@@ -858,7 +858,7 @@ void init(void)
     }
 
     /* Initialize breakcount and makecount */
-    for (i = 0; i < numclause; i++) {
+    for (i = 0; i < numclauses; i++) {
         for (j = 0; j < size[i]; j++) {
             if ((clause[i][j] > 0) == atom[ABS(clause[i][j])]) {
                 numtruelit[i]++;
@@ -917,17 +917,17 @@ void initprob(void)
             ;
     }
     ungetc(lastc, cnfStream);
-    if (fscanf(cnfStream, "p cnf %i %i", &numvars, &numclause) != 2) {
+    if (fscanf(cnfStream, "p cnf %i %i", &numvars, &numclauses) != 2) {
         fprintf(stderr, "Bad input file\n");
         exit(-1);
     }
 
-    clause = (int **)calloc(sizeof(int *), (numclause + 1));
-    size = (int *)calloc(sizeof(int), (numclause + 1));
-    false = (int *)calloc(sizeof(int), (numclause + 1));
-    lowfalse = (int *)calloc(sizeof(int), (numclause + 1));
-    wherefalse = (int *)calloc(sizeof(int), (numclause + 1));
-    numtruelit = (int *)calloc(sizeof(int), (numclause + 1));
+    clause = (int **)calloc(sizeof(int *), (numclauses + 1));
+    size = (int *)calloc(sizeof(int), (numclauses + 1));
+    false = (int *)calloc(sizeof(int), (numclauses + 1));
+    lowfalse = (int *)calloc(sizeof(int), (numclauses + 1));
+    wherefalse = (int *)calloc(sizeof(int), (numclauses + 1));
+    numtruelit = (int *)calloc(sizeof(int), (numclauses + 1));
 
     occurrence = (int **)calloc(sizeof(int *), (2 * numvars + 1));
     numoccurrence = (int *)calloc(sizeof(int), (2 * numvars + 1));
@@ -952,7 +952,7 @@ void initprob(void)
 
     for (i = 0; i < 2 * numvars + 1; i++)
         numoccurrence[i] = 0;
-    for (i = 0; i < numclause; i++) {
+    for (i = 0; i < numclauses; i++) {
         size[i] = 0;
         do {
             if (fscanf(cnfStream, "%i ", &lit) != 1) {
@@ -985,7 +985,7 @@ void initprob(void)
 
     /* Have to wait to set the clause[i] ptrs to the end, since store might move */
     j = 0;
-    for (i = 0; i < numclause; i++) {
+    for (i = 0; i < numclauses; i++) {
         clause[i] = &(storebase[j]);
         j += size[i];
     }
@@ -1018,7 +1018,7 @@ void initprob(void)
     }
 
     /* Third, fill in the occurence lists */
-    for (i = 0; i < numclause; i++) {
+    for (i = 0; i < numclauses; i++) {
         for (j = 0; j < size[i]; j++) {
             lit = clause[i][j];
             occurrence[lit + numvars][numoccurrence[lit + numvars]] = i;
@@ -1074,7 +1074,7 @@ void initialize_statistics(void)
 
 void print_statistics_header(void)
 {
-    printf("numvars = %i, numclause = %i, numliterals = %i\n", numvars, numclause, numliterals);
+    printf("numvars = %i, numclauses = %i, numliterals = %i\n", numvars, numclauses, numliterals);
     printf("wff read in\n\n");
 
     printf(
@@ -1132,7 +1132,7 @@ void update_statistics_end_flip(void)
 
         if (numfalse < last_adaptive_objective) {
             last_adaptive_objective = numfalse;
-            stagnation_timer = (int)(numclause * adaptive_theta);
+            stagnation_timer = (int)(numclauses * adaptive_theta);
             /* p = p - p * (phi)/2
                p = (1 - phi/2) * p
                p = (1 - phi/2) * (numerator / denominator)
@@ -1144,7 +1144,7 @@ void update_statistics_end_flip(void)
             stagnation_timer = stagnation_timer - 1;
             if (stagnation_timer <= 0) {
                 last_adaptive_objective = numfalse;
-                stagnation_timer = (int)(numclause * adaptive_theta);
+                stagnation_timer = (int)(numclauses * adaptive_theta);
                 /* p = p + (1 - p) * phi
 		   denominator * p = denominator * p + denominator * (1 - p) * phi
  		   numerator = numerator + denominator * (1 - p) * phi;
@@ -1600,7 +1600,7 @@ int countunsat(void)
     int i, j, unsat, bad, lit, sign;
 
     unsat = 0;
-    for (i = 0; i < numclause; i++) {
+    for (i = 0; i < numclauses; i++) {
         bad = TRUE;
         for (j = 0; j < size[i]; j++) {
             lit = clause[i][j];
