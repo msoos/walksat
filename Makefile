@@ -1,11 +1,12 @@
-CC = gcc -O3
+CC = g++ -O3
 
 all:	walksat makewff makequeens
 
-walksat: walksat.c
-	$(CC)  -c walksat.c
+walksat: walksat.cpp walksat.h walksat_main.cpp
+	$(CC)  -c walksat.cpp
+	$(CC)  -c walksat_main.cpp
 	# If linking fails, then try adding Windows Winmm.lib
-	$(CC) walksat.o -lm -static -o walksat || $(CC) walksat.o -lm -lWinmm -o walksat
+	$(CC) walksat.o walksat_main.o -lm -static -o walksat || $(CC) walksat_main.o walksat.o -lm -lWinmm -o walksat
 	strip walksat
 
 makewff: makewff.c
